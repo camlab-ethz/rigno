@@ -167,3 +167,5 @@ out/*
 tmp.*
 *_tmp.*
 *tmp_*.*
+*.job
+*.sh
