@@ -18,7 +18,17 @@ The following figure illustrates the estimates produced by a RIGNO with 2.7 mill
 
 ## How to use
 
-Train a model with default settings:
+Install the necessary packages:
 ```bash
-python -m rigno.train --datadir 'path_to_data' --datapath 'relative_path_to_dataset' --epochs 20 --batch_size 2 --n_train 128 --n_valid 128
+pip install -r requirements.txt
+```
+
+Provided that the dataset is downloaded and placed in `./<dir>/<path>.nc`, you can train a RIGNO on it with the following command:
+```bash
+python -m rigno.train --datadir '<dir>' --datapath '<path>' --epochs 500 --batch_size 8 --n_train 512 --n_valid 256
+```
+
+You can run the following command to see the full list of the command-line arguments:
+```bash
+python -m rigno.train --help
 ```

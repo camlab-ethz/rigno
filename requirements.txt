@@ -1,9 +1,9 @@
-numpy
-matplotlib
-pandas
-seaborn
+flax
 h5py
 jax
-flax
-optax
 jraph
+matplotlib
+numpy
+optax
+pandas
+seaborn
