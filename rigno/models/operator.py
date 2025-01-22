@@ -1,3 +1,5 @@
+"""Abstract (learnable) operator."""
+
 from typing import Union, NamedTuple
 
 from flax import linen as nn
@@ -6,6 +8,8 @@ from rigno.utils import Array
 
 
 class Inputs(NamedTuple):
+  """Structured of the inputs of an operator."""
+
   u: Array
   c: Union[Array, None]
   x_inp: Array
@@ -14,6 +18,8 @@ class Inputs(NamedTuple):
   tau: Union[Array, float, None]
 
 class AbstractOperator(nn.Module):
+  """Abstract class for a learnable operator."""
+
   def setup(self):
     raise NotImplementedError
 

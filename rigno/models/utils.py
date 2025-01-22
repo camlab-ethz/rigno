@@ -1,4 +1,4 @@
-"""A library of auxiliary functions and classes."""
+"""Utility functions that are used in."""
 
 from typing import Sequence, Callable
 
@@ -8,15 +8,17 @@ import jax.tree_util as tree
 
 
 def concatenate_args(args, kwargs, axis: int = -1):
+  """Concatenates all positional and keyword arguments on the given axis."""
+
   combined_args = tree.tree_flatten(args)[0] + tree.tree_flatten(kwargs)[0]
   concat_args = jnp.concatenate(combined_args, axis=axis)
   return concat_args
 
-class AugmentedMLP(nn.Module):
+class FeedForwardBlock(nn.Module):
   """
-  Multi-layer perceptron with optional layer norm and learned correction on the last layer.
-  Activation is applied on all layers except the last one.
-  Multiple inputs are concatenated before being fed to the MLP.
+  Multi-layer perceptron with optional layer norm and learned distribution correction
+  on the last layer. Activation is applied on all layers except the last one. Multiple
+  inputs are concatenated before being fed to the MLP.
   """
 
   layer_sizes: Sequence[int]
@@ -62,7 +64,7 @@ class AugmentedMLP(nn.Module):
 class ConditionedNorm(nn.Module):
   """
   Learned correction layer is designed to be applied after a normalization layer.
-  Based on an input (e.g., time delta), it shifts and scales the distribution of its input.
+  Based on an input (e.g., lead time), it shifts and scales the distribution of its input.
   correction_size must either be 1 or the same as one of the input dimensions (broadcastable).
   """
 

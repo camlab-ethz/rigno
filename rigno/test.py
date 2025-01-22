@@ -1,9 +1,15 @@
+"""Functions for testing a trained model."""
+
 import json
 import pickle
 import shutil
 from time import time
 from typing import Type, Mapping, Callable, Any, Sequence
 
+from absl import app, flags, logging
+from flax.training.common_utils import shard, shard_prng_key
+from flax.typing import PRNGKey
+from flax.jax_utils import replicate
 import jax
 import jax.numpy as jnp
 import jax.tree_util as tree
@@ -11,10 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import orbax.checkpoint
 import pandas as pd
-from absl import app, flags, logging
-from flax.training.common_utils import shard, shard_prng_key
-from flax.typing import PRNGKey
-from flax.jax_utils import replicate
 
 from rigno.dataset import Dataset, Batch
 from rigno.experiments import DIR_EXPERIMENTS
@@ -64,6 +66,8 @@ def _print_between_dashes(msg):
   logging.info('-' * 80)
 
 def _build_graph_metadata(batch: Batch, graph_builder: RegionInteractionGraphBuilder, dataset: Dataset, rmesh_correction_dsf: int = 1) -> RegionInteractionGraphMetadata:
+  """Creates the minimum needed metadata (light-weight) for building the graphs."""
+
   # Build graph metadata with transformed coordinates
   metadata = []
   num_p2r_edges = 0
@@ -98,7 +102,9 @@ def _build_graph_metadata(batch: Batch, graph_builder: RegionInteractionGraphBui
 
   return g
 
-def _change_discretization(batch: Batch, key: PRNGKey = None):
+def _change_discretization(batch: Batch, key: PRNGKey = None) -> Batch:
+  """Permutes the spatial coordinates."""
+
   if key is None:
     key = jax.random.PRNGKey(0)
   permutation = jax.random.permutation(key, batch.shape[2])
@@ -106,9 +112,12 @@ def _change_discretization(batch: Batch, key: PRNGKey = None):
   _c = batch.c[:, :, permutation, :] if (batch.c is not None) else None
   _x = batch.x[:, :, permutation, :]
   _g = None
+
   return Batch(u=_u, c=_c, x=_x, t=batch.t, g=_g)
 
-def _change_resolution(batch: Batch, space_downsample_factor: int):
+def _change_resolution(batch: Batch, space_downsample_factor: int) -> Batch:
+  """Changes the spatial resolution by downsampling the space coordinates."""
+
   if space_downsample_factor == 1:
     return batch
   num_space = int(batch.shape[2] / space_downsample_factor)
@@ -117,6 +126,7 @@ def _change_resolution(batch: Batch, space_downsample_factor: int):
   _c = batch.c[:, :, :num_space, :] if (batch.c is not None) else None
   _x = batch.x[:, :, :num_space, :]
   _g = None
+
   return Batch(u=_u, c=_c, x=_x, t=batch.t, g=_g)
 
 def profile_inference(
@@ -298,7 +308,7 @@ def get_rollout_estimations(
   stats,
   batch: Batch,
   key = None,
-):
+) -> Array:
   """Inputs are of shape [batch_size_per_device, ...]"""
 
   inputs = Inputs(
@@ -435,7 +445,6 @@ def get_all_estimations(
     res: {tau: None for tau in taus_rollout} for res in all_dsfs}
 
   # Instantiate the steppers
-  # TODO: Same stepper for all resolutions !!
   for dsf in all_dsfs:
     # Configure and build new model
     model_configs = model.configs
@@ -791,7 +800,7 @@ def get_ensemble_estimations(
   tau_ratio_max: int,
   p_edge_masking: float,
   key,
-):
+) -> Array:
 
   # Replicate state and stats
   # NOTE: Internally uses jax.device_put_replicate

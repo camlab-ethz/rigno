@@ -55,7 +55,6 @@ def GraphNetwork(
     aggregate_nodes_for_globals_fn: jraph.AggregateNodesToGlobalsFn = jraph.segment_mean,
     aggregate_edges_for_globals_fn: jraph.AggregateEdgesToGlobalsFn = jraph.segment_mean,
   ):
-  # TODO: update the docstring
   """Returns a method that applies a configured GraphNetwork.
 
   This implementation follows Algorithm 1 in https://arxiv.org/abs/1806.01261
@@ -99,6 +98,7 @@ def GraphNetwork(
 
     Args:
       graph: a `TypedGraph` containing the graph.
+      kwargs: Keyword arguments that should be passed to the message and update functions.
 
     Returns:
       Updated `TypedGraph`.
@@ -269,7 +269,6 @@ def InteractionNetwork(
     aggregate_edges_for_nodes_fn: jraph.AggregateEdgesToNodesFn = jraph.segment_mean,
     include_sent_messages_in_node_update: bool = False,
   ):
-  # TODO: update the docstring
   """Returns a method that applies a configured InteractionNetwork.
 
   An interaction network computes interactions on the edges based on the
@@ -292,8 +291,6 @@ def InteractionNetwork(
   """
   # An InteractionNetwork is a GraphNetwork without globals features,
   # so we implement the InteractionNetwork as a configured GraphNetwork.
-
-  # TRY: Consider using the global features instead of keyword arguments
 
   # An InteractionNetwork edge function does not have global feature inputs,
   # so we filter the passed global argument in the GraphNetwork.
@@ -320,7 +317,6 @@ def GraphMapFeatures(
     embed_node_fn: Optional[Mapping[str, jraph.EmbedNodeFn]] = None,
     embed_global_fn: Optional[jraph.EmbedGlobalFn] = None,
   ):
-  # TODO: update the docstring
   """Returns function which embeds the components of a graph independently.
 
   Args:

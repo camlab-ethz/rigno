@@ -1,3 +1,5 @@
+"""Helper functions for plotting the datasets and model predictions."""
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.colors
@@ -6,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 
 
+# Colors
 C_BLACK = '#000000'
 C_WHITE = '#ffffff'
 C_BLUE = '#093691'
@@ -15,6 +18,7 @@ C_BLACK_REDDISH = '#380801'
 C_WHITE_BLUEISH = '#dce5f5'
 C_WHITE_REDDISH = '#f5dcdc'
 
+# Color maps
 CMAP_BBR = matplotlib.colors.LinearSegmentedColormap.from_list(
   'blue_black_red',
   [C_WHITE_BLUEISH, C_BLUE, C_BLACK, C_RED, C_WHITE_REDDISH],
@@ -31,11 +35,13 @@ CMAP_WRB = matplotlib.colors.LinearSegmentedColormap.from_list(
   N=200,
 )
 
+# General settings
 plt.rcParams['font.family'] = 'serif'
 SCATTER_SETTINGS = dict(marker='s', s=1, alpha=1, linewidth=0)
 HATCH_SETTINGS = dict(facecolor='#b8b8b8', hatch='//////', edgecolor='#4f4f4f', linewidth=.0)
 
 def plot_trajectory(u, x, t, idx_t, idx_s=0, symmetric=True, ylabels=None, domain=([0, 0], [1, 1])):
+  """Plot the trajectory of a functions."""
 
   _WIDTH_PER_COL = 1.5
   _HEIGHT_PER_ROW = 1.7
@@ -125,6 +131,7 @@ def plot_trajectory(u, x, t, idx_t, idx_s=0, symmetric=True, ylabels=None, domai
   return fig, axs
 
 def plot_estimates(u_inp, u_gtr, u_prd, x_inp, x_out, symmetric=True, names=None, domain=([0, 0], [1, 1])):
+  """Plot the model estimates along with ground-truth function."""
 
   _HEIGHT_PER_ROW = 1.9
   _HEIGHT_MARGIN = .2
@@ -268,6 +275,7 @@ def plot_estimates(u_inp, u_gtr, u_prd, x_inp, x_out, symmetric=True, names=None
   return fig
 
 def plot_ensemble(u_gtr, u_ens, x, idx_out: int, idx_s: int = 0, symmetric=True, names=None, domain=([0, 0], [1, 1])):
+  """Plot the statistics of an ensemble of model estimates."""
 
   _HEIGHT_PER_ROW = 2.5
   _HEIGHT_MARGIN = .2

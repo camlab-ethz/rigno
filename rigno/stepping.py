@@ -1,3 +1,5 @@
+"""Time-stepping classes."""
+
 from abc import ABC, abstractmethod
 from typing import Union
 
@@ -9,11 +11,13 @@ from rigno.models.operator import AbstractOperator, Inputs
 from rigno.utils import Array, is_multiple, normalize, unnormalize
 
 class Stepper(ABC):
+  """Abstract class for a time-stepping scheme."""
 
   def __init__(self, operator: AbstractOperator):
     self._apply_operator = operator.apply
 
   def normalize_inputs(self, stats, inputs: Inputs) -> Inputs:
+    """Normalizes the inputs using the given statistics."""
 
     u_nrm = normalize(inputs.u, shift=stats['u']['mean'], scale=stats['u']['std'])
     if inputs.c is None:
@@ -49,12 +53,7 @@ class Stepper(ABC):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Normalizes raw inputs and applies the operator on it.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Normalizes raw inputs and applies the operator on it."""
     pass
 
   def unroll(self,
@@ -64,7 +63,7 @@ class Stepper(ABC):
     inputs: Inputs,
     **kwargs,
   ):
-    """Apply the stepper multiple times to reach t_inp+tau by dividing tau."""
+    """Apply the stepper num_steps times."""
     # NOTE: Assuming constant x in time
     # NOTE: Assuming constant c in time
 
@@ -107,12 +106,7 @@ class Stepper(ABC):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Calculates prediction and target variables, ready to be given as input to the loss function.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Calculates prediction and target variables, ready to be given as input to the loss function."""
     pass
 
   def get_intermediates(self,
@@ -121,6 +115,8 @@ class Stepper(ABC):
     inputs: Inputs,
     **kwargs,
   ):
+    """Gets the intermediate values that are computed in the model."""
+
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
 
@@ -135,6 +131,10 @@ class Stepper(ABC):
     return state['intermediates']
 
 class TimeDerivativeStepper(Stepper):
+  """
+  Interprets the output of the model as the truncated Taylor approximation
+  for the first derivative of the target function in time.
+  """
 
   def apply(self,
     variables,
@@ -142,12 +142,7 @@ class TimeDerivativeStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Normalizes raw inputs and applies the operator on it.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Normalizes raw inputs and applies the operator on it."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -178,12 +173,7 @@ class TimeDerivativeStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Calculates prediction and target variables, ready to be given as input to the loss function.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Calculates prediction and target variables, ready to be given as input to the loss function."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -206,6 +196,7 @@ class TimeDerivativeStepper(Stepper):
     return (d_tgt_nrm, d_prd_nrm)
 
 class ResidualStepper(Stepper):
+  """Assumes the output of the model to be the residual of the target function."""
 
   def apply(self,
     variables,
@@ -213,12 +204,7 @@ class ResidualStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Normalizes raw inputs and applies the operator on it.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Normalizes raw inputs and applies the operator on it."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -249,12 +235,7 @@ class ResidualStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Calculates prediction and target variables, ready to be given as input to the loss function.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Calculates prediction and target variables, ready to be given as input to the loss function."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -277,6 +258,7 @@ class ResidualStepper(Stepper):
     return (r_tgt_nrm, r_prd_nrm)
 
 class OutputStepper(Stepper):
+  """Assumes the output of the model to be the actual values of the target function."""
 
   def apply(self,
     variables,
@@ -284,12 +266,7 @@ class OutputStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Normalizes raw inputs and applies the operator on it.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Normalizes raw inputs and applies the operator on it."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -317,12 +294,7 @@ class OutputStepper(Stepper):
     inputs: Inputs,
     **kwargs,
   ):
-    """
-    Calculates prediction and target variables, ready to be given as input to the loss function.
-
-    t_inp is the time of the input and must be a non-negative integer.
-    tau is the time difference and must be an integer greater than zero.
-    """
+    """Calculates prediction and target variables, ready to be given as input to the loss function."""
 
     # Normalize inputs
     inputs_nrm = self.normalize_inputs(stats, inputs)
@@ -344,6 +316,7 @@ class OutputStepper(Stepper):
     return (u_tgt_nrm, u_prd_nrm)
 
 class AutoregressiveStepper:
+  """Class for applying a time-stepping scheme autoregressively."""
 
   def __init__(self, stepper: Stepper, dt: float, tau_max: Union[None, float] = None):
     """
@@ -378,6 +351,8 @@ class AutoregressiveStepper:
     key: flax.typing.PRNGKey = None,
     **kwargs,
   ) -> Array:
+    """Unroll by taking all the necessary time steps. To be used when the whole trajectory is needed."""
+
     # NOTE: Assuming constant x in time
     # NOTE: Assuming constant c in time
 
@@ -478,7 +453,7 @@ class AutoregressiveStepper:
     key: flax.typing.PRNGKey = None,
     **kwargs,
   ) -> Array:
-    """Takes num_jumps large steps, each of length num_steps_direct."""
+    """Takes num_jumps large steps, each of length num_steps_direct. To be used when only the last time step is needed."""
 
     assert inputs.tau is None
     u_inp = inputs.u

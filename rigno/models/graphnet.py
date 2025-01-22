@@ -24,11 +24,10 @@ import jraph
 
 from rigno.graph.entities import TypedGraph
 from rigno.graph.networks import GraphMapFeatures, InteractionNetwork
-from rigno.models.utils import AugmentedMLP
+from rigno.models.utils import FeedForwardBlock
 
 
 class DeepTypedGraphNet(nn.Module):
-  # TODO: update the docstring
   """Deep Graph Neural Network.
 
   It works with TypedGraphs with typed nodes and edges. It runs message
@@ -73,11 +72,14 @@ class DeepTypedGraphNet(nn.Module):
         representation from the output of the processor will be returned.
     include_sent_messages_in_node_update: Whether to include pooled sent
         messages from each node in the node update.
-    use_layer_norm: Whether it uses layer norm or not.
-    activation: name of activation function.
+    use_layer_norm: Whether to use LayerNorm layers.
+    conditioned_normalization: Whether to use conditioned normalization layers.
+    cond_norm_hidden_size: Hidden size for the shallow MLP used for
+      computing shift and scales in the conditioned normalization layers.
+    activation: name of the activation function.
     f32_aggregation: Use float32 in the edge aggregation.
-    aggregate_edges_for_nodes_fn: function used to aggregate messages to each
-      node.
+    aggregate_edges_for_nodes_fn: function used to aggregate messages
+      to each node.
     name: Name of the model.
   """
 
@@ -104,7 +106,7 @@ class DeepTypedGraphNet(nn.Module):
     # The embedder graph network independently embeds edge and node features.
     if self.embed_edges:
       embed_edge_fn = {
-        edge_set_name: AugmentedMLP(
+        edge_set_name: FeedForwardBlock(
           layer_sizes=(
             [self.edge_latent_size[edge_set_name]] * self.mlp_num_hidden_layers
             + [self.edge_latent_size[edge_set_name]]
@@ -120,7 +122,7 @@ class DeepTypedGraphNet(nn.Module):
       embed_edge_fn = None
     if self.embed_nodes:
       embed_node_fn = {
-        node_set_name: AugmentedMLP(
+        node_set_name: FeedForwardBlock(
           layer_sizes=(
             [self.node_latent_size[node_set_name]] * self.mlp_num_hidden_layers
             + [self.node_latent_size[node_set_name]]
@@ -160,7 +162,7 @@ class DeepTypedGraphNet(nn.Module):
     self._processor_networks = [
       InteractionNetwork(
         update_edge_fn={
-          edge_set_name: AugmentedMLP(
+          edge_set_name: FeedForwardBlock(
             layer_sizes=(
               [self.edge_latent_size[edge_set_name]] * self.mlp_num_hidden_layers
               + [self.edge_latent_size[edge_set_name]]
@@ -174,7 +176,7 @@ class DeepTypedGraphNet(nn.Module):
           for edge_set_name in self.edge_latent_size.keys()
         },
         update_node_fn={
-          node_set_name: AugmentedMLP(
+          node_set_name: FeedForwardBlock(
             layer_sizes=(
               [self.node_latent_size[node_set_name]] * self.mlp_num_hidden_layers
               + [self.node_latent_size[node_set_name]]
@@ -196,7 +198,7 @@ class DeepTypedGraphNet(nn.Module):
     # The output MLPs converts edge/node latent features into the output sizes.
     output_kwargs = dict(
       embed_edge_fn={
-        edge_set_name: AugmentedMLP(
+        edge_set_name: FeedForwardBlock(
           layer_sizes=(
             [self.edge_output_size[edge_set_name]] * self.mlp_num_hidden_layers
             + [self.edge_output_size[edge_set_name]]
@@ -209,7 +211,7 @@ class DeepTypedGraphNet(nn.Module):
         for edge_set_name in self.edge_output_size.keys()
       } if self.edge_output_size else None,
       embed_node_fn={
-        node_set_name: AugmentedMLP(
+        node_set_name: FeedForwardBlock(
           layer_sizes=(
             [self.node_output_size[node_set_name]] * self.mlp_num_hidden_layers
             + [self.node_output_size[node_set_name]]
@@ -226,6 +228,7 @@ class DeepTypedGraphNet(nn.Module):
 
   def __call__(self, input_graph: TypedGraph, condition: Union[None, float]) -> TypedGraph:
     """Forward pass of the learnable dynamics model."""
+
     # Embed input features (if applicable).
     latent_graph_0 = self._embed(input_graph, c=condition)
 
@@ -299,14 +302,17 @@ class DeepTypedGraphNet(nn.Module):
 
   def _output(self, latent_graph: TypedGraph, **kwargs) -> TypedGraph:
     """Produces the output from the latent graph."""
+
     return self._output_network(latent_graph, **kwargs)
 
 def _get_activation_fn(name):
   """Return activation function corresponding to function_name."""
+
   if name == 'identity':
     return lambda x: x
   if hasattr(jax.nn, name):
     return getattr(jax.nn, name)
   if hasattr(jnp, name):
     return getattr(jnp, name)
+
   raise ValueError(f'Unknown activation function {name} specified.')

@@ -5,13 +5,16 @@ from typing import Sequence, Union
 import jax
 import jax.numpy as jnp
 
-from rigno.utils import Array, ScalarArray
 from rigno.dataset import Metadata
+from rigno.utils import Array, ScalarArray
+
 
 EPSILON = 1e-10
 
 @dataclass
 class BatchMetrics:
+    """Evaluation metrics of a data batch."""
+
     mse: Array = None
     l1: Array = None
     l2: Array = None
@@ -35,6 +38,8 @@ class BatchMetrics:
 
 @dataclass
 class Metrics:
+    """Evaluation metrics of a dataset."""
+
     mse: float = None
     l1: float = None
     l2: float = None
@@ -45,6 +50,8 @@ class Metrics:
 
 @dataclass
 class EvalMetrics:
+  """Holder for different types of evaluations."""
+
   direct_tau_frac: Metrics = None
   direct_tau_min: Metrics = None
   direct_tau_max: Metrics = None
@@ -65,6 +72,7 @@ def lp_norm(arr: Array, p: int = 2, chunks: Union[None, Sequence[int]] = None, n
         chunks: Index of variable chunks for vectorial functions.
             If None, the entries of the last axis are interpreted as values of
             independent scalar-valued functions. Defaults to None.
+        num_chunks: Number of the variable chunks. Defaults to None.
 
     Returns:
         A scalar value for each sample in the batch [batch, *remaining_axes]
@@ -105,7 +113,7 @@ def rel_lp_error(gtr: Array, prd: Array, p: int = 2, chunks: Union[None, Sequenc
         chunks: Index of variable chunks for vectorial functions.
             If None, the entries of the last axis are interpreted as values of
             independent scalar-valued functions. Defaults to None.
-
+        num_chunks: Number of the variable chunks. Defaults to None.
 
     Returns:
         A scalar value for each sample in the batch [batch, var]
@@ -138,6 +146,7 @@ def rel_lp_error_norm(gtr: Array, prd: Array, p: int = 2, chunks: Union[None, Se
         chunks: Index of variable chunks for vectorial functions.
             If None, the entries of the last axis are interpreted as values of
             independent scalar-valued functions. Defaults to None.
+        num_chunks: Number of the variable chunks. Defaults to None.
 
     Returns:
         The vector norm of the error vector [batch,]
@@ -162,6 +171,7 @@ def rel_lp_error_mean(gtr: Array, prd: Array, p: int = 2, chunks: Union[None, Se
         chunks: Index of variable chunks for vectorial functions.
             If None, the entries of the last axis are interpreted as values of
             independent scalar-valued functions. Defaults to None.
+        num_chunks: Number of the variable chunks. Defaults to None.
 
     Returns:
         The vector norm of the error vector [batch,]

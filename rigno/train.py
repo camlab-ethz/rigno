@@ -1,23 +1,23 @@
+from datetime import datetime
+import functools
 import json
 import pickle
-import functools
-from datetime import datetime
 from time import time
 from typing import Tuple, Any, Mapping, Iterable, Callable, Union
 
-import flax.typing
-import jax
-import jax.numpy as jnp
-import jax.tree_util as tree
-import numpy as np
-import optax
-import orbax.checkpoint
 from absl import app, flags, logging
+from flax.jax_utils import replicate, unreplicate
+import flax.typing
 from flax.training import orbax_utils
 from flax.training.train_state import TrainState
 from flax.training.common_utils import shard, shard_prng_key
-from flax.jax_utils import replicate, unreplicate
+import jax
+import jax.numpy as jnp
+import jax.tree_util as tree
 from jax.tree_util import PyTreeDef
+import numpy as np
+import optax
+import orbax.checkpoint
 from matplotlib import pyplot as plt
 
 from rigno.dataset import Dataset, Batch
@@ -150,7 +150,7 @@ def train(
   epochs_before: int = 0,
   loss_fn: Callable = mse_loss,
 ) -> TrainState:
-  """Trains a model and returns the state."""
+  """Trains a model and returns the model state."""
 
   # Set constants
   num_samples_trn = dataset.nums['train']
@@ -544,6 +544,10 @@ def train(
     stats,
     batch: Batch
   ) -> Mapping:
+    """
+    Evaluates the one-step predictions of the model by giving all the snapshots as input and
+    comparing the results with the next snapshot. The input dataset must be raw (not normalized).
+    """
 
     if tau_ratio < 1:
       assert is_multiple(1., tau_ratio)
@@ -582,9 +586,8 @@ def train(
     batch: Batch
   ) -> Mapping:
     """
-    Predicts the trajectories autoregressively.
+    Predicts the trajectories autoregressively and evaluates them.
     The input dataset must be raw (not normalized).
-    Inputs are of shape [batch_size_per_device, ...]
     """
 
     # Set inputs and target
@@ -626,7 +629,10 @@ def train(
     stats,
     batch: Batch
   ) -> Mapping:
-
+    """
+    Evaluates the predictions at the final time only.
+    The input dataset must be raw (not normalized).
+    """
 
     if dataset.time_dependent:
       # Set input and target
@@ -705,7 +711,7 @@ def train(
     rollout: bool = False,
     final: bool = True,
   ) -> EvalMetrics:
-    """Evaluates the model on a dataset based on multiple trajectory lengths."""
+    """Runs all the evaluations and returns the metrics."""
 
     metrics_direct_tau_frac: list[BatchMetrics] = []
     metrics_direct_tau_min: list[BatchMetrics] = []
@@ -991,9 +997,7 @@ def train(
   return unreplicate(state)
 
 def get_model(model_configs: Mapping[str, Any], dataset: Dataset) -> AbstractOperator:
-  """
-  Build the model based on the given configurations.
-  """
+  """Build the model based on the given configurations."""
 
   # Set model kwargs
   if not model_configs:

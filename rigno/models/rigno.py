@@ -1,24 +1,28 @@
 from typing import Tuple, Union, NamedTuple
 
+from flax import linen as nn
 import flax.typing
 import jax.numpy as jnp
 import jax.random
-import numpy as np
 import jraph
-from flax import linen as nn
+import numpy as np
 from scipy.spatial import Delaunay
 
-from rigno.graph.entities import (
-    TypedGraph, EdgeSet, EdgeSetKey,
-    EdgesIndices, NodeSet, Context)
+from rigno.graph.entities import (TypedGraph, EdgeSet, EdgeSetKey,
+  EdgesIndices, NodeSet, Context)
 from rigno.models.graphnet import DeepTypedGraphNet
 from rigno.models.operator import AbstractOperator, Inputs
 from rigno.utils import Array, shuffle_arrays
 
 
 class RegionInteractionGraphSet(NamedTuple):
+  """The set of the graphs that are used in RIGNO."""
+
+  #: Graph connecting the physical nodes to the regional nodes
   p2r: TypedGraph
+  #: Graph containing bi-directional edges in the regional mesh
   r2r: TypedGraph
+  #: Graph connecting the regional nodes to the physical nodes
   r2p: TypedGraph
 
   def __len__(self) -> int:
@@ -40,6 +44,7 @@ class RegionInteractionGraphMetadata(NamedTuple):
     return self.x_pnodes_inp.shape[0]
 
 class RegionInteractionGraphBuilder:
+  """Class for building the graphs that are used in RIGNO."""
 
   def __init__(self,
     periodic: bool,
@@ -49,6 +54,23 @@ class RegionInteractionGraphBuilder:
     overlap_factor_r2p: float,
     node_coordinate_freqs: int
   ):
+    """
+    Class for building the graphs that are used in RIGNO.
+
+    Args:
+        periodic: If True, periodic boundary conditions are considered
+          in defining the edges.
+        rmesh_levels: Number of times that the physical nodes are
+          downsampled for defining the edges in the r2r graph.
+        subsample_factor: Factor for spatial downsampling of the nodes
+          in each direction.
+        overlap_factor_p2r: Factor by which the minimum support-regions
+          in the p2r graph get multiplied to.
+        overlap_factor_r2p: Factor by which the minimum support-regions
+          in the r2p graph get multiplied to.
+        node_coordinate_freqs: Number of frequencies for encoding the
+          spatial coordinates. Ignored if periodic is False.
+    """
 
     # Set attributes
     self.periodic = periodic
@@ -72,9 +94,15 @@ class RegionInteractionGraphBuilder:
     ], axis=0)
 
   def _compute_minimum_support_radius(self, x: Array) -> Array:
+      """
+      Returns the minimum radius of the support sub-region of each regional node.
+      By considering the neighnor nodes, it ensures that the union of all support
+      sub-regions covers the whole domain.
+      """
       # NOTE: This function is not jittable because of the Delaunay triangulation
 
       if self.periodic:
+        # Repeat the domain in all directions before constructing a triangulation
         x_extended = (x[None, :, :] + self._domain_shifts[:, None, :]).reshape(-1, 2)
         tri = Delaunay(points=x_extended)
       else:
@@ -99,7 +127,21 @@ class RegionInteractionGraphBuilder:
     radii: Array,
     ord_distance: int = 2,
   ) -> Array:
-    """ord_distance can be 1, 2, or np.inf"""
+    """
+    Get the indices of the physical nodes that lie in the support sub-region of
+    each regional node.
+
+    Arguments:
+      centers: The coordinates of the regional nodes.
+      points: The coordinates of the physical nodes.
+      radii: The support radius of each regional node.
+      ord_distance: The order of the norm for defining the
+        support sub-region of a regional node. Typical values
+        are 1, 2, and np.inf
+
+    Returns:
+      The indices of the physical nodes for each regional node.
+    """
 
     # Replace large radii
     # NOTE: Makeshift solution for peculiar geometries
@@ -124,7 +166,16 @@ class RegionInteractionGraphBuilder:
     return idx_nodes
 
   def _get_r2r_edges(self, x_rmesh: Array) -> Tuple[Array, Array]:
-    """Constructrs the processor graph (rmesh to rmesh)"""
+    """
+    Defines the edges of the r2r graph (processor graph).
+
+    Arguments:
+      x_rmesh: Coordinates of the regional nodes.
+
+    Returns:
+      The edges (pair of node indices) and the index of the corresponding
+      (extended) domain of the source and destination nodes.
+    """
 
     # Define edges and their corresponding -extended- domain
     edges = []
@@ -161,8 +212,8 @@ class RegionInteractionGraphBuilder:
 
     return edges, domains
 
-  # TODO: Build multiple graphs at the same time in a vectorial way
   def build_metadata(self, x_inp: Array, x_out: Array, domain: Array, rmesh_correction_dsf: int = 1, key: Union[flax.typing.PRNGKey, None] = None) -> RegionInteractionGraphMetadata:
+    """Returns the metadata that is needed for building all RIGNO graphs."""
 
     # Normalize coordinates in [-1, +1)
     x_inp = 2 * (x_inp - domain[0]) / (domain[1] - domain[0]) - 1
@@ -170,17 +221,7 @@ class RegionInteractionGraphBuilder:
 
     # Randomly sub-sample pmesh to get rmesh
     if key is None: key = jax.random.PRNGKey(0)
-    if self.periodic:
-      x_rnodes = _subsample_pointset(key=key, x=x_inp, factor=self.subsample_factor)
-    else:
-      # TODO: Keep boundary nodes for non-periodic BC
-      x_rnodes = _subsample_pointset(key=key, x=x_inp, factor=self.subsample_factor)
-      # NOTE: With the below implementation the number of x_rnodes might vary
-      # idx_bound = np.where((x_inp[:, 0] == -1) | (x_inp[:, 0] == +1) | (x_inp[:, 1] == -1) | (x_inp[:, 1] == +1))
-      # x_boundary = x_inp[idx_bound]
-      # x_internal = np.delete(x_inp, idx_bound, axis=0)
-      # x_rmesh_internal = _subsample_pointset(key=key, x=x_internal, factor=self.subsample_factor)
-      # x_rnodes, = shuffle_arrays(key=key, arrays=(jnp.concatenate([x_boundary, x_rmesh_internal]),))
+    x_rnodes = _subsample_pointset(key=key, x=x_inp, factor=self.subsample_factor)
 
     # Downsample or upsample the rmesh
     if rmesh_correction_dsf > 1:
@@ -252,6 +293,28 @@ class RegionInteractionGraphBuilder:
     domain_sen: Array = None,
     domain_rec: Array = None,
   ) -> Tuple[EdgeSet, NodeSet, NodeSet]:
+    """
+    Creates the edge set and the node sets of a graph. The edge and node feature vectors
+    are initialized with the structural features that are computed based on the coordinates
+    of the nodes.
+
+    Args:
+        x_sen: The coordiantes of the sender nodes.
+        x_rec: The coordiantes of the receiver nodes.
+        idx_sen: The indices of the sender nodes in edges.
+        idx_rec: The indices of the receiver nodes in edges.
+        max_edge_length: Maximum possible edge length that is used for normalization.
+        feats_sen: Forced (structural) features of the sender nodes. Defaults to None.
+        feats_rec: Forced (structural) features of the receiver nodes. Defaults to None.
+        shift: If True, the long cross-boundary edge lengths are replaced with equivalent
+          short lengths. This operation only makes sense for periodic boundary conditions.
+          Defaults to False.
+        domain_sen: Index of the (extended) domain of the sender nodes. Defaults to None.
+        domain_rec: Index of the (extended) domain of the receiver nodes. Defaults to None.
+
+    Returns:
+        Edge set, sender node set, and the receiver node set.
+    """
 
     # Get number of nodes and the edges
     batch_size = x_sen.shape[0]
@@ -306,13 +369,13 @@ class RegionInteractionGraphBuilder:
     batched_index_single = jax.vmap(lambda f, idx: f[idx], in_axes=(None, 0))
     z_ij = batched_index(x_sen, idx_sen) - batched_index(x_rec, idx_rec)
     if self.periodic:
-      # NOTE: For p2r and r2p, mirror the large relative coordinates
-      # MODIFY: Unify the mirroring with the below method in r2r
       if not shift:
+        # NOTE: For p2r and r2p, mirror the large relative coordinates
+        # MODIFY: Unify the mirroring with the below method in r2r
         z_ij = jnp.where(z_ij < -1.0, z_ij + 2, z_ij)
         z_ij = jnp.where(z_ij >= 1.0, z_ij - 2, z_ij)
-      # NOTE: For the r2r multi-mesh, use extended domain indices and shifts
       else:
+        # NOTE: For the r2r multi-mesh, use extended domain indices and shifts
         z_ij = (
           (batched_index(x_sen, idx_sen) + batched_index_single(self._domain_shifts, domain_sen))
           - (batched_index(x_rec, idx_rec) + batched_index_single(self._domain_shifts, domain_rec))
@@ -406,6 +469,7 @@ class RegionInteractionGraphBuilder:
     return graph
 
   def build_graphs(self, metadata: RegionInteractionGraphMetadata) -> RegionInteractionGraphSet:
+    """Constructs all the graphs that are used by RIGNO by using the necessary pre-computed metadata."""
 
     # Unwrap the attributes
     x_pnodes_inp = metadata.x_pnodes_inp
@@ -430,6 +494,19 @@ class RegionInteractionGraphBuilder:
     return graphs
 
 class Encoder(nn.Module):
+  """Encoder block of RIGNO.
+
+  Args:
+    node_latent_size: Dimension of the latent node features.
+    edge_latent_size: Dimension of the latent edge features.
+    mlp_hidden_layers: Number of hidden layers in the MLPs.
+    use_layer_norm: Whether to use LayerNorm layers.
+    conditioned_normalization: Whether to use conditioned normalization layers.
+    cond_norm_hidden_size: Hidden size for the shallow MLP used for
+      computing shift and scales in the conditioned normalization layers.
+    p_edge_masking: Probability of masking an edge.
+  """
+
   node_latent_size: int
   edge_latent_size: int
   mlp_hidden_layers: int = 1
@@ -472,7 +549,6 @@ class Encoder(nn.Module):
     new_pnodes = pnodes._replace(
       features=jnp.concatenate([pnode_features, pnodes.features], axis=-1)
     )
-    # CHECK: Is this necessary?
     # To make sure capacity of the embedded is identical for the physical nodes and
     # the regional nodes, we also append some dummy zero input features for the
     # regional nodes.
@@ -526,6 +602,20 @@ class Encoder(nn.Module):
     return latent_rnodes, latent_pnodes
 
 class Processor(nn.Module):
+  """Processor block of RIGNO.
+
+  Args:
+    steps: Number of message passing blocks in the processor.
+    node_latent_size: Dimension of the latent node features.
+    edge_latent_size: Dimension of the latent edge features.
+    mlp_hidden_layers: Number of hidden layers in the MLPs.
+    use_layer_norm: Whether to use LayerNorm layers.
+    conditioned_normalization: Whether to use conditioned normalization layers.
+    cond_norm_hidden_size: Hidden size for the shallow MLP used for
+      computing shift and scales in the conditioned normalization layers.
+    p_edge_masking: Probability of masking an edge.
+  """
+
   steps: int
   node_latent_size: int
   edge_latent_size: int
@@ -617,7 +707,20 @@ class Processor(nn.Module):
     return output_rnodes
 
 class Decoder(nn.Module):
-  variable_mesh: bool
+  """Decoder block of RIGNO.
+
+  Args:
+    num_outputs: Number of output variables.
+    node_latent_size: Dimension of the latent node features.
+    edge_latent_size: Dimension of the latent edge features.
+    mlp_hidden_layers: Number of hidden layers in the MLPs.
+    use_layer_norm: Whether to use LayerNorm layers.
+    conditioned_normalization: Whether to use conditioned normalization layers.
+    cond_norm_hidden_size: Hidden size for the shallow MLP used for
+      computing shift and scales in the conditioned normalization layers.
+    p_edge_masking: Probability of masking an edge.
+  """
+
   num_outputs: int
   node_latent_size: int
   edge_latent_size: int
@@ -630,7 +733,7 @@ class Decoder(nn.Module):
   def setup(self):
     self.gnn = DeepTypedGraphNet(
     # NOTE: with variable mesh, the output pnode features must be embedded
-    embed_nodes=(dict(pnodes=True) if self.variable_mesh else False),
+    embed_nodes=False,
     embed_edges=True,  # Embed raw features of the edges
     # Require a specific node dimensionaly for the physical node outputs
     # NOTE: This triggers the independent mapping for pnodes
@@ -666,13 +769,7 @@ class Decoder(nn.Module):
     rnodes = graph.nodes['rnodes']
     pnodes = graph.nodes['pnodes']
     new_rnodes = rnodes._replace(features=rnode_features)
-    if self.variable_mesh:
-      # NOTE: We can't use latent pnodes of the input mesh for the output mesh
-      # TRY: Make sure that this does not harm the performance with fixed mesh
-      # If it works, change the architecture, flowcharts, etc.
-      new_pnodes = pnodes._replace(features=pnodes.features)
-    else:
-      new_pnodes = pnodes._replace(features=pnode_features)
+    new_pnodes = pnodes._replace(features=pnode_features)
 
     # Get edges
     r2p_edges_key = graph.edge_key_by_name('r2p')
@@ -717,7 +814,22 @@ class Decoder(nn.Module):
     return output_pnodes
 
 class RIGNO(AbstractOperator):
-  """TODO: Add docstrings"""
+  """RIGNO: Region Interaction Graph Neural Operator.
+  The default values correspond to the RIGNO-18 model.
+
+  Args:
+    num_outputs: Number of output variables.
+    processor_steps: Number of message passing blocks in the processor.
+    node_latent_size: Dimension of the latent node features.
+    edge_latent_size: Dimension of the latent edge features.
+    mlp_hidden_layers: Number of hidden layers in the MLPs.
+    concatenate_t: Wether to concatenate the input time to the features of all nodes.
+    concatenate_tau: Wether to concatenate the lead time to the features of all nodes.
+    conditioned_normalization: Whether to use conditioned normalization layers.
+    cond_norm_hidden_size: Hidden size for the shallow MLP used for
+      computing shift and scales in the conditioned normalization layers.
+    p_edge_masking: Probability of masking an edge.
+  """
 
   num_outputs: int
   processor_steps: int = 18
@@ -744,11 +856,6 @@ class RIGNO(AbstractOperator):
     assert u.shape[2] == x.shape[2], f'u: {u.shape}, x: {x.shape}'
 
   def setup(self):
-    # NOTE: There are a few architectural considerations for variable mesh
-    # NOTE: variable_mesh=True means that the input and the output mesh can be different
-    # NOTE: Check usages of this attribute
-    self.variable_mesh = False
-
     self.encoder = Encoder(
       edge_latent_size=self.edge_latent_size,
       node_latent_size=self.node_latent_size,
@@ -771,7 +878,6 @@ class RIGNO(AbstractOperator):
     )
 
     self.decoder = Decoder(
-      variable_mesh=self.variable_mesh,
       num_outputs=self.num_outputs,
       edge_latent_size=self.edge_latent_size,
       node_latent_size=self.node_latent_size,
@@ -905,9 +1011,11 @@ class RIGNO(AbstractOperator):
     return output
 
 def _subsample_pointset(key, x: Array, factor: float) -> Array:
-  """Downsamples a point cloud by randomly subsampling them"""
+  """Downsamples a point cloud by randomly subsampling them."""
+
   x = jnp.array(x)
   x_shuffled, = shuffle_arrays(key, [x])
+
   return x_shuffled[:int(x.shape[0] / factor)]
 
 def _upsample_pointset(key, x: Array, factor: float) -> Array:
@@ -918,19 +1026,20 @@ def _upsample_pointset(key, x: Array, factor: float) -> Array:
   tri = Delaunay(points=x)
   simplices = jax.random.permutation(key=key, x=tri.simplices)[jnp.arange(num_new_points)]
   x_ext = np.mean(x[simplices], axis=1)
+
   return np.concatenate([x, x_ext], axis=0)
 
 def _get_edges_from_triangulation(tri: Delaunay, bidirectional: bool = True):
+
   indptr, cols = tri.vertex_neighbor_vertices
   rows = np.repeat(np.arange(len(indptr) - 1), np.diff(indptr))
   edges = np.stack([rows, cols], -1)
   if bidirectional:
     edges = np.concatenate([edges, np.flip(edges, axis=-1)], axis=0)
+
   return edges
 
 def _compute_triangulation_medians(tri: Delaunay) -> Array:
-  # Only in 2D
-
   edges = np.zeros(shape=tri.simplices.shape)
   medians = np.zeros(shape=tri.simplices.shape)
   for i in range(tri.simplices.shape[1]):

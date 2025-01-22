@@ -1,27 +1,29 @@
-"""Utility functions for reading the datasets."""
+"""Classes and metadata for reading the datasets."""
 
-import h5py
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Sequence, NamedTuple, Literal
-from copy import deepcopy
 
 from flax.typing import PRNGKey
+import h5py
 import jax
 import jax.lax
 import jax.numpy as jnp
 import jax.tree_util as tree
 import numpy as np
 
-from rigno.utils import Array
 from rigno.models.rigno import (
   RegionInteractionGraphMetadata,
   RegionInteractionGraphSet,
   RegionInteractionGraphBuilder)
+from rigno.utils import Array
 
 
 @dataclass
 class Metadata:
+  """Holder of metadata for a dataset."""
+
   periodic: bool
   group_u: str
   group_c: str
@@ -706,6 +708,8 @@ DATASET_METADATA = {
 }
 
 class Batch(NamedTuple):
+  """A batch of data samples."""
+
   u: Array
   c: Union[None, Array]
   x: Array
@@ -723,6 +727,7 @@ class Batch(NamedTuple):
     return self.shape[0]
 
 class Dataset:
+  """Class for reading a dataset."""
 
   def __init__(self,
     datadir: str,
@@ -738,6 +743,21 @@ class Dataset:
     preload: bool = False,
     key: PRNGKey = None,
   ):
+    """
+    Args:
+        datadir: Directory of the datasets.
+        datapath: Relative path of the dataset in the data directory.
+        include_passive_variables: If True, passive variables of the dataset are returned. Defaults to False.
+        concatenate_coeffs: If True, the coefficients are concatenated to the main function. Defaults to False.
+        time_cutoff_idx: Time index where the trajectories are cut off. Defaults to None.
+        time_downsample_factor: A factor for downsampling in the time axis. Defaults to 1.
+        space_downsample_factor: A factor for downsampling in the space axis (in each direction). Defaults to 1..
+        n_train: Number of training samples. Defaults to 0.
+        n_valid: Number of validation samples. Defaults to 0.
+        n_test: Number of test samples. Defaults to 0.
+        preload: If True, the whole dataset is loaded in CPU memory. Defaults to False.
+        key: Random number generator key for random processes such as downsampling and shuffles. Defaults to None.
+    """
 
     # Set attributes
     self.key = key if (key is not None) else jax.random.PRNGKey(0)
@@ -832,10 +852,13 @@ class Dataset:
           self.x = np.concatenate([x_trn, x_val, x_tst], axis=0)
 
   @property
-  def time_dependent(self):
+  def time_dependent(self) -> bool:
+    """Wether the dataset is time-dependent."""
+
     return self.metadata.domain_t is not None
 
   def compute_stats(self, residual_steps: int = 0) -> None:
+    """Computes the statistics of the dataset based on the training samples."""
 
     # Check inputs
     assert residual_steps >= 0
@@ -1073,6 +1096,8 @@ class Dataset:
     return batch
 
   def _fetch_mode(self, idx: Union[int, Sequence], mode: str, get_graphs: bool = True):
+    """Fetches a sample from a specific part of the dataset."""
+
     # Check inputs
     if isinstance(idx, int):
       idx = [idx]
@@ -1083,15 +1108,23 @@ class Dataset:
     return self._fetch(_idx, get_graphs=get_graphs)
 
   def train(self, idx: Union[int, Sequence]):
+    """Fetches a sample from the training samples."""
+
     return self._fetch_mode(idx, mode='train')
 
   def valid(self, idx: Union[int, Sequence]):
+    """Fetches a sample from the validation samples."""
+
     return self._fetch_mode(idx, mode='valid')
 
   def test(self, idx: Union[int, Sequence]):
+    """Fetches a sample from the test samples."""
+
     return self._fetch_mode(idx, mode='test')
 
   def batches(self, mode: str, batch_size: int, get_graphs: bool = True, key: PRNGKey = None):
+    """Fetches batches of samples from a specific part of the dataset."""
+
     assert batch_size > 0
     assert batch_size <= self.nums[mode]
 
