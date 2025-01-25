@@ -62,8 +62,7 @@ class RegionInteractionGraphBuilder:
           in defining the edges.
         rmesh_levels: Number of times that the physical nodes are
           downsampled for defining the edges in the r2r graph.
-        subsample_factor: Factor for spatial downsampling of the nodes
-          in each direction.
+        subsample_factor: Factor for spatial downsampling of the nodes.
         overlap_factor_p2r: Factor by which the minimum support-regions
           in the p2r graph get multiplied to.
         overlap_factor_r2p: Factor by which the minimum support-regions

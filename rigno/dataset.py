@@ -751,7 +751,7 @@ class Dataset:
         concatenate_coeffs: If True, the coefficients are concatenated to the main function. Defaults to False.
         time_cutoff_idx: Time index where the trajectories are cut off. Defaults to None.
         time_downsample_factor: A factor for downsampling in the time axis. Defaults to 1.
-        space_downsample_factor: A factor for downsampling in the space axis (in each direction). Defaults to 1..
+        space_downsample_factor: A factor for downsampling in the space axis (in each direction). Defaults to 1.
         n_train: Number of training samples. Defaults to 0.
         n_valid: Number of validation samples. Defaults to 0.
         n_test: Number of test samples. Defaults to 0.
