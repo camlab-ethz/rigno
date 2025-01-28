@@ -1076,11 +1076,11 @@ class Dataset:
 
     # Downsample the space coordinates randomly
     if self.space_downsample_factor > 1:
-      permutation = jax.random.permutation(self.key, u.shape[2])
-      # NOTE: Same discretization for all snapshots
-      u = u[:, :, permutation]
-      c = c[:, :, permutation] if (c is not None) else None
-      x = x[:, :, permutation]
+      # NOTE: Uncommenting the below lines will result in different sub-samplings in each batch
+      # permutation = jax.random.permutation(self.key, u.shape[2])
+      # u = u[:, :, permutation]
+      # c = c[:, :, permutation] if (c is not None) else None
+      # x = x[:, :, permutation]
 
       size = int(u.shape[2] / (self.space_downsample_factor ** 2))
       u = u[:, :, :size]
