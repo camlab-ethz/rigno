@@ -1,6 +1,7 @@
+absl-py
 flax
 h5py
-jax
+jax # [cuda12]
 jraph
 matplotlib
 numpy

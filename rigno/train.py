@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 from rigno.dataset import Dataset, Batch
 from rigno.experiments import DIR_EXPERIMENTS
 from rigno.metrics import BatchMetrics, Metrics, EvalMetrics
-from rigno.metrics import rel_lp_loss, mse_loss
+from rigno.metrics import mse_loss
 from rigno.metrics import mse_error, rel_lp_error_norm
 from rigno.metrics import normalized_rel_lp_error_mean
 from rigno.models.operator import AbstractOperator, Inputs
@@ -44,98 +44,98 @@ FLAGS = flags.FLAGS
 def define_flags():
   # FLAGS::general
   flags.DEFINE_string(name='exp', default='000', required=False,
-    help='Name of the experiment'
+    help='Name of the experiment.'
   )
   flags.DEFINE_string(name='datetime', default=None, required=False,
-    help='A string representing the current datetime'
+    help='A string representing the current datetime.'
   )
   flags.DEFINE_string(name='datadir', default=None, required=True,
-    help='Path of the folder containing the datasets'
+    help='Path of the folder containing the datasets.'
   )
   flags.DEFINE_string(name='datapath', default=None, required=True,
-    help='Relative path inside the data directory'
+    help='Relative path inside the data directory. Example: "unstructured/ACE".'
   )
   flags.DEFINE_string(name='params', default=None, required=False,
-    help='Path of the previous experiment containing the initial parameters'
+    help='Path of the previous experiment containing the initial parameters.'
   )
   flags.DEFINE_integer(name='seed', default=44, required=False,
-    help='Seed for random number generator'
+    help='Seed for random number generator.'
   )
   flags.DEFINE_integer(name='time_downsample_factor', default=2, required=False,
-    help='Factor for downsampling the time resolution'
+    help='Factor for downsampling the time resolution.'
   )
   flags.DEFINE_float(name='space_downsample_factor', default=1., required=False,
-    help='Factor for downsampling the space resolution'
+    help='Factor for downsampling the space resolution.'
   )
 
   # FLAGS::training
   flags.DEFINE_integer(name='batch_size', default=2, required=False,
-    help='Size of a batch of training samples'
+    help='Size of a batch of training samples. Must be equal or greater than number of GPUs.'
   )
-  flags.DEFINE_integer(name='epochs', default=20, required=False,
-    help='Number of training epochs'
+  flags.DEFINE_integer(name='epochs', default=2000, required=False,
+    help='Number of training epochs.'
   )
   flags.DEFINE_float(name='lr_init', default=1e-05, required=False,
-    help='Initial learning rate in the onecycle scheduler'
+    help='Initial learning rate in the onecycle scheduler.'
   )
   flags.DEFINE_float(name='lr_peak', default=2e-04, required=False,
-    help='Peak learning rate in the onecycle scheduler'
+    help='Peak learning rate in the onecycle scheduler.'
   )
   flags.DEFINE_float(name='lr_base', default=1e-05, required=False,
-    help='Final learning rate in the onecycle scheduler'
+    help='Final learning rate in the onecycle scheduler.'
   )
   flags.DEFINE_float(name='lr_lowr', default=1e-06, required=False,
-    help='Final learning rate in the exponential decay'
+    help='Final learning rate in the exponential decay.'
   )
   flags.DEFINE_string(name='stepper', default='der', required=False,
-    help='Type of the stepper'
+    help='Type of the stepper. Set to "out" for time-independent datasets.'
   )
-  flags.DEFINE_integer(name='tau_max', default=1, required=False,
-    help='Maximum number of time steps between input/output pairs during training'
+  flags.DEFINE_integer(name='tau_max', default=7, required=False,
+    help='Maximum number of time steps between input/output pairs during training. Set to 0 for time-independent datasets.'
   )
   flags.DEFINE_boolean(name='fractional', default=False, required=False,
-    help='If passed, train with fractional time steps (unrolled)'
+    help='If passed, fine-tunes with fractional pairing strategy.'
   )
   flags.DEFINE_integer(name='n_train', default=(2**9), required=False,
-    help='Number of training samples'
+    help='Number of training samples.'
   )
-  flags.DEFINE_integer(name='n_valid', default=(2**8), required=False,
-    help='Number of validation samples'
+  flags.DEFINE_integer(name='n_valid', default=(2**7), required=False,
+    help='Number of validation samples.'
   )
   flags.DEFINE_integer(name='n_test', default=(2**8), required=False,
-    help='Number of test samples'
+    help='Number of test samples.'
   )
 
   # FLAGS::model::RIGNO
   flags.DEFINE_float(name='mesh_subsample_factor', default=4.0, required=False,
-    help='Factor for random subsampling of hierarchical meshes'
+    help='Factor for random subsampling of hierarchical meshes.'
   )
-  flags.DEFINE_float(name='overlap_factor_p2r', default=4.0, required=False,
-    help='Overlap factor for p2r edges (encoder)'
+  flags.DEFINE_float(name='overlap_factor_p2r', default=1.0, required=False,
+    help='Overlap factor for p2r edges (encoder).'
   )
-  flags.DEFINE_float(name='overlap_factor_r2p', default=4.0, required=False,
-    help='Overlap factor for r2p edges (decoder)'
+  flags.DEFINE_float(name='overlap_factor_r2p', default=2.0, required=False,
+    help='Overlap factor for r2p edges (decoder).'
   )
-  flags.DEFINE_integer(name='rmesh_levels', default=4, required=False,
-    help='Number of multimesh connection levels (processor)'
+  flags.DEFINE_integer(name='rmesh_levels', default=6, required=False,
+    help='Number of multimesh connection levels (processor).'
   )
-  flags.DEFINE_integer(name='node_coordinate_freqs', default=2, required=False,
-    help='Number of frequencies for encoding periodic node coordinates'
+  flags.DEFINE_integer(name='node_coordinate_freqs', default=4, required=False,
+    help='Number of frequencies for encoding periodic node coordinates.'
   )
   flags.DEFINE_integer(name='node_latent_size', default=128, required=False,
-    help='Size of latent node features'
+    help='Size of latent node features.'
   )
   flags.DEFINE_integer(name='edge_latent_size', default=128, required=False,
-    help='Size of latent edge features'
+    help='Size of latent edge features.'
   )
   flags.DEFINE_integer(name='mlp_hidden_layers', default=1, required=False,
-    help='Number of hidden layers of all MLPs'
+    help='Number of hidden layers of all MLPs.'
   )
-  flags.DEFINE_integer(name='processor_steps', default=18, required=False,
-    help='Number of message-passing steps in the processor'
+  flags.DEFINE_integer(name='processor_steps', default=12, required=False,
+    help='Number of message-passing steps in the processor.'
   )
   flags.DEFINE_float(name='p_edge_masking', default=0.5, required=False,
-    help='Probability of random edge masking'
+    help='Probability of random edge masking.'
   )
 
 def train(

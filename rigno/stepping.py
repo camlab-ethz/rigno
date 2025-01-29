@@ -320,7 +320,7 @@ class AutoregressiveStepper:
 
   def __init__(self, stepper: Stepper, dt: float, tau_max: Union[None, float] = None):
     """
-    Class for autoregressive inferrence of an operator.
+    Class for autoregressive Inference of an operator.
 
     Args:
         stepper: Uses an operator with proper stepping method.

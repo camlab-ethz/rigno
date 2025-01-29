@@ -36,28 +36,28 @@ FLAGS = flags.FLAGS
 
 def define_flags():
   flags.DEFINE_string(name='exp', default=None, required=True,
-    help='Relative path of the experiment'
+    help='Relative path of the experiment. Example: "E000/unstructured/ACE/20250129-120202'
   )
   flags.DEFINE_string(name='datadir', default=None, required=True,
-    help='Path of the folder containing the datasets'
+    help='Path of the folder containing the datasets.'
   )
   flags.DEFINE_integer(name='batch_size', default=4, required=False,
-    help='Size of a batch of training samples'
+    help='Size of a batch of test samples.'
   )
   flags.DEFINE_integer(name='n_test', default=(2**8), required=False,
-    help='Number of test samples'
+    help='Number of test samples.'
   )
   flags.DEFINE_boolean(name='only_profile', default=False, required=False,
-    help='If passed, the tests are skipped'
+    help='If passed, the tests are skipped and only profiling is carried out.'
   )
   flags.DEFINE_boolean(name='resolution', default=False, required=False,
-    help='If passed, estimations with different discretizations are computed'
+    help='If passed, estimations with different discretizations are computed.'
   )
   flags.DEFINE_boolean(name='noise', default=False, required=False,
-    help='If passed, estimations for noise control are computed'
+    help='If passed, estimations for noise control are computed.'
   )
   flags.DEFINE_boolean(name='ensemble', default=False, required=False,
-    help='If passed, ensemble samples are generated using model randomness'
+    help='If passed, ensemble samples are generated using model randomness.'
   )
 
 def _print_between_dashes(msg):
@@ -190,7 +190,7 @@ def profile_inference(
   t_graph = profile(graph_fn, kwargs=dict(x=batch.x[0, 0]), repeats=10)
   # Profile compilation
   t_compilation = profile(f=apply_fn, kwargs=model_kwargs, repeats=1, block_until_ready=True)
-  # Profile inferrence after compilation
+  # Profile Inference after compilation
   t = profile(f=apply_fn, kwargs=model_kwargs, repeats=repeats, block_until_ready=True)
 
   general_info = [
@@ -203,8 +203,8 @@ def profile_inference(
   times_info = [
     f'Graph building: {t_graph * 1000: .2f}ms',
     f'Compilation: {t_compilation : .2f}s',
-    f'Inferrence: {t * 1000 : .2f}ms per batch',
-    f'Inferrence: {t * 1000 / batch_size_per_device : .2f}ms per sample',
+    f'Inference: {t * 1000 : .2f}ms per batch',
+    f'Inference: {t * 1000 / batch_size_per_device : .2f}ms per sample',
   ]
 
   # Print all messages in dashes
