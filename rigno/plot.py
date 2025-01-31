@@ -44,7 +44,7 @@ def plot_trajectory(u, x, t, idx_t, idx_s=0, symmetric=True, ylabels=None, domai
   """Plot the trajectory of a functions."""
 
   _WIDTH_PER_COL = 1.5
-  _HEIGHT_PER_ROW = 1.7
+  _HEIGHT_PER_ROW = 1.5
   _WIDTH_MARGIN = .2
   _HEIGHT_MARGIN = .2
   _SCATTER_SETTINGS = SCATTER_SETTINGS.copy()

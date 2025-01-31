@@ -1,0 +1,2 @@
+# Exclude Jupyter notebooks from code statistics
+*.ipynb linguist-vendored=true

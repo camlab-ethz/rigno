@@ -254,16 +254,16 @@ def get_direct_estimations(
   """Inputs are of shape [batch_size_per_device, ...]"""
 
   # Set lead times
-  lead_times = jnp.arange(batch.shape[1])
+  init_times = jnp.arange(batch.shape[1])
   batch_size = batch.shape[0]
 
   # Get inputs for all lead times
-  # -> [num_lead_times, batch_size_per_device, ...]
+  # -> [num_init_times, batch_size_per_device, ...]
   u_inp = jax.vmap(
       lambda lt: jax.lax.dynamic_slice_in_dim(
         operand=batch.u,
         start_index=(lt), slice_size=1, axis=1)
-  )(lead_times)
+  )(init_times)
   t_inp = batch.t.swapaxes(0, 1).reshape(-1, batch_size, 1)
 
   # Get model estimations
@@ -286,7 +286,7 @@ def get_direct_estimations(
     )
     carry += 1
     return carry, _u_prd
-  # -> [num_lead_times, batch_size_per_device, 1, ...]
+  # -> [num_init_times, batch_size_per_device, 1, ...]
   _, u_prd = jax.lax.scan(
     f=_use_step_on_mini_batches,
     init=0,
@@ -295,7 +295,7 @@ def get_direct_estimations(
   )
 
   # Re-arrange
-  # -> [batch_size_per_device, num_lead_times, ...]
+  # -> [batch_size_per_device, num_init_times, ...]
   u_prd = u_prd.swapaxes(0, 1).squeeze(axis=2)
 
   return u_prd

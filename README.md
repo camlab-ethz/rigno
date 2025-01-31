@@ -1,5 +1,5 @@
 # RIGNO: Region Interaction Graph Neural Operator
-Codes for the paper **"RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains"**
+Codes for the paper ["RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains"](...)
 
 ## Abstract
 Learning the solution operators of PDEs on arbitrary domains is challenging due to the diversity of possible domain shapes, in addition to the often intricate underlying physics. We propose an end-to-end graph neural network (GNN) based neural operator to learn PDE solution operators from data on point clouds in arbitrary domains. Our multi-scale model maps data between input/output point clouds by passing it through a downsampled regional mesh. Many novel elements are also incorporated to ensure resolution invariance and temporal continuity. Our model, termed RIGNO, is tested on a challenging suite of benchmarks, composed of various time-dependent and steady PDEs defined on a diverse set of domains. We demonstrate that RIGNO is significantly more accurate than neural operator baselines and robustly generalizes to unseen grid resolutions and time instances.
@@ -19,7 +19,7 @@ The figure below illustrates the estimates produced by a RIGNO trained on 1024 i
 
 <p align="center"> <img src="assets/sample-elasticity.png" alt="sample-elasticity" width="600"/> </p>
 
-## How to use
+## Datasets
 
 Follow the instructions in [this Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.14765453) for downloading the datasets, and put them in a data directory with the following structure:
 ```
@@ -33,9 +33,16 @@ Follow the instructions in [this Zenodo repository](https://zenodo.org/doi/10.52
         |__ ...
 ```
 
+
+## Minimal example
+
+The `example.ipynb` notebook provides a minimal example on how to use the codes. After setting up the environment, you can run it yourself or experiment with RIGNO by changing the parameters.
+
+## Usage
+
 Create and activate a fresh virtual environment:
 ```bash
-python -m virtualenv venv-rigno
+python -m venv venv-rigno
 source venv-rigno/bin/activate
 ```
 
@@ -76,4 +83,9 @@ The test module infers the model directly (single-step inference with different 
 You can run the following command to see the full list of the command-line arguments of the testing module and their default values:
 ```bash
 python -m rigno.test --help
+```
+
+## Citation
+
+```
 ```

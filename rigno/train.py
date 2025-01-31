@@ -171,16 +171,16 @@ def train(
 
   # Define the permissible lead times
   if dataset.time_dependent:
-    num_lead_times = num_times - 1
-    assert num_lead_times > 0
+    num_init_times = num_times - 1
+    assert num_init_times > 0
     assert tau_max < num_times
-    num_lead_times_full = max(0, num_times - tau_max)
-    num_lead_times_part = num_lead_times - num_lead_times_full
+    num_init_times_full = max(0, num_times - tau_max)
+    num_init_times_part = num_init_times - num_init_times_full
     num_valid_pairs = (
-      num_lead_times_full * tau_max
-      + (num_lead_times_part * (num_lead_times_part+1) // 2)
+      num_init_times_full * tau_max
+      + (num_init_times_part * (num_init_times_part+1) // 2)
     )
-    lead_times = jnp.arange(num_times - 1)
+    init_times = jnp.arange(num_times - 1)
 
   # Define the steppers
   if FLAGS.stepper == 'der':
@@ -363,69 +363,69 @@ def train(
 
     if dataset.time_dependent:
       # Index trajectories and times and collect input/output pairs
-      # -> [num_lead_times, batch_size_per_device, ...]
+      # -> [num_init_times, batch_size_per_device, ...]
       u_inp_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=batch.u,
             start_index=(lt), slice_size=1, axis=1)
-      )(lead_times)
+      )(init_times)
       c_inp_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=batch.c,
             start_index=(lt), slice_size=1, axis=1)
-      )(lead_times) if (batch.c is not None) else None
+      )(init_times) if (batch.c is not None) else None
       x_inp_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=batch.x,
             start_index=(lt), slice_size=1, axis=1)
-      )(lead_times)
+      )(init_times)
       t_inp_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=batch.t,
             start_index=(lt), slice_size=1, axis=1)
-      )(lead_times)
+      )(init_times)
       u_tgt_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=jnp.concatenate([batch.u, jnp.zeros_like(batch.u)], axis=1),
             start_index=(lt+1), slice_size=tau_max, axis=1)
-      )(lead_times)
+      )(init_times)
       t_tgt_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=jnp.concatenate([batch.t, jnp.zeros_like(batch.t)], axis=1),
             start_index=(lt+1), slice_size=tau_max, axis=1)
-      )(lead_times)
+      )(init_times)
       x_out_batch = jax.vmap(
           lambda lt: jax.lax.dynamic_slice_in_dim(
             operand=jnp.concatenate([batch.x, jnp.zeros_like(batch.x)], axis=1),
             start_index=(lt+1), slice_size=tau_max, axis=1)
-      )(lead_times)
+      )(init_times)
 
       # Repeat inputs along the time axis to match with u_tgt
-      # -> [num_lead_times, batch_size_per_device, tau_max, ...]
+      # -> [num_init_times, batch_size_per_device, tau_max, ...]
       u_inp_batch = jnp.tile(u_inp_batch, reps=(1, 1, tau_max, 1, 1))
       c_inp_batch = jnp.tile(c_inp_batch, reps=(1, 1, tau_max, 1, 1)) if (batch.c is not None) else None
       x_inp_batch = jnp.tile(x_inp_batch, reps=(1, 1, tau_max, 1, 1))
       t_inp_batch = jnp.tile(t_inp_batch, reps=(1, 1, tau_max, 1, 1))
 
       # Put all pairs along the batch axis
-      # -> [batch_size_per_device * num_lead_times * tau_max, ...]
-      u_inp_batch = u_inp_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
-      x_inp_batch = x_inp_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
+      # -> [batch_size_per_device * num_init_times * tau_max, ...]
+      u_inp_batch = u_inp_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
+      x_inp_batch = x_inp_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
       c_inp_batch = c_inp_batch.reshape(
-        (num_lead_times*batch_size_per_device*tau_max), 1, num_pnodes, -1) if (batch.c is not None) else None
-      t_inp_batch = t_inp_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, 1, 1)
-      t_tgt_batch = t_tgt_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, 1, 1)
-      u_tgt_batch = u_tgt_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
-      x_out_batch = x_out_batch.reshape((num_lead_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
+        (num_init_times*batch_size_per_device*tau_max), 1, num_pnodes, -1) if (batch.c is not None) else None
+      t_inp_batch = t_inp_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, 1, 1)
+      t_tgt_batch = t_tgt_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, 1, 1)
+      u_tgt_batch = u_tgt_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
+      x_out_batch = x_out_batch.reshape((num_init_times*batch_size_per_device*tau_max), 1, num_pnodes, -1)
 
       # Get tau as the difference between input and target t
       tau_batch = t_tgt_batch - t_inp_batch
 
       # Remove the invalid pairs
       # -> [batch_size_per_device * num_valid_pairs, ...]
-      offset_full_lead_times = (num_times - tau_max) * tau_max * batch_size_per_device
+      offset_full_init_times = (num_times - tau_max) * tau_max * batch_size_per_device
       idx_invalid_pairs = np.array([
-        (offset_full_lead_times + (_d * batch_size_per_device + _b) * tau_max - (_n + 1))
+        (offset_full_init_times + (_d * batch_size_per_device + _b) * tau_max - (_n + 1))
         for _d in range(tau_max - 1)
         for _b in range(1, batch_size_per_device + 1)
         for _n in range(_d + 1)
@@ -1171,15 +1171,15 @@ def main(argv):
   num_batches = dataset.nums['train'] // FLAGS.batch_size
   if dataset.time_dependent:
     num_times = dataset.shape[1]
-    num_lead_times = num_times - 1
-    assert num_lead_times > 0
-    num_lead_times_full = max(0, num_times - FLAGS.tau_max)
-    num_lead_times_part = num_lead_times - num_lead_times_full
+    num_init_times = num_times - 1
+    assert num_init_times > 0
+    num_init_times_full = max(0, num_times - FLAGS.tau_max)
+    num_init_times_part = num_init_times - num_init_times_full
     transition_steps = 0
     for _d in (range(1, FLAGS.tau_max+1) if schedule_tau_max else [FLAGS.tau_max]):
       num_valid_pairs_d = (
-        num_lead_times_full * _d
-        + (num_lead_times_part * (num_lead_times_part+1) // 2)
+        num_init_times_full * _d
+        + (num_init_times_part * (num_init_times_part+1) // 2)
       )
       if schedule_tau_max:
         epochs_d = (epochs_dff if (_d == FLAGS.tau_max) else epochs_dxx)
