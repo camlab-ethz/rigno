@@ -1,5 +1,5 @@
 # RIGNO: Region Interaction Graph Neural Operator
-Codes for the paper ["RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains"](...)
+Code repository of the paper ["RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains"](https://arxiv.org/abs/2501.19205).
 
 ## Abstract
 Learning the solution operators of PDEs on arbitrary domains is challenging due to the diversity of possible domain shapes, in addition to the often intricate underlying physics. We propose an end-to-end graph neural network (GNN) based neural operator to learn PDE solution operators from data on point clouds in arbitrary domains. Our multi-scale model maps data between input/output point clouds by passing it through a downsampled regional mesh. Many novel elements are also incorporated to ensure resolution invariance and temporal continuity. Our model, termed RIGNO, is tested on a challenging suite of benchmarks, composed of various time-dependent and steady PDEs defined on a diverse set of domains. We demonstrate that RIGNO is significantly more accurate than neural operator baselines and robustly generalizes to unseen grid resolutions and time instances.
