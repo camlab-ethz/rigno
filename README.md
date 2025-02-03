@@ -87,5 +87,14 @@ python -m rigno.test --help
 
 ## Citation
 
-```
+```bibtex
+@misc{mousavi2025rigno,
+    title={RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains},
+    author={Sepehr Mousavi and Shizheng Wen and Levi Lingsch and Maximilian Herde and Bogdan Raonić and Siddhartha Mishra},
+    year={2025},
+    eprint={2501.19205},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG},
+    url={https://arxiv.org/abs/2501.19205},
+}
 ```
