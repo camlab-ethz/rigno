@@ -21,7 +21,7 @@ The above figure shows a general schematic of the RIGNO architecture for an idea
 
 The following animations illustrate the estimates produced by a RIGNO with 1.9 million parameters trained on 1024 solution trajectories (without fancy pairing strategies) of the incompressible Navier-Stokes equations in a two-dimensional square domain with periodic boundary conditions. All figures corresponds to unstructured versions (random point clouds) of the datasets. The model is trained with snapshots up to time 0.7s; the estimates after this time are considered as extrapolation in time.
 
-<p align="center"> <img src="assets/samples/ns-combined-2.gif"  width="800" /> </p>
+<p align="center"> <img src="assets/samples/ns-combined-2.gif"  width="1000" /> </p>
 
 ## Datasets
 
