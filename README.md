@@ -1,23 +1,27 @@
-# RIGNO: Region Interaction Graph Neural Operator
-Code repository of the paper ["RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains"](https://arxiv.org/abs/2501.19205).
+<h1 align="center"> Region Interaction Graph Neural Operator </h1>
+<p align="center"> <img src="assets/camlab-logo.png" width="100"/> </p>
+<h4 style="text-align:center; margin-left:auto; margin-right:auto; max-width:600px; word-wrap:break-word;"> <a href="https://arxiv.org/abs/2501.19205"> "RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains" </a>  </h4>
 
-## Abstract
-Learning the solution operators of PDEs on arbitrary domains is challenging due to the diversity of possible domain shapes, in addition to the often intricate underlying physics. We propose an end-to-end graph neural network (GNN) based neural operator to learn PDE solution operators from data on point clouds in arbitrary domains. Our multi-scale model maps data between input/output point clouds by passing it through a downsampled regional mesh. Many novel elements are also incorporated to ensure resolution invariance and temporal continuity. Our model, termed RIGNO, is tested on a challenging suite of benchmarks, composed of various time-dependent and steady PDEs defined on a diverse set of domains. We demonstrate that RIGNO is significantly more accurate than neural operator baselines and robustly generalizes to unseen grid resolutions and time instances.
+<h6 align="center">  Sepehr Mousavi, Shizheng Wen, Levi Lingsch, </h6>
+<h6 align="center">  Maximilian Herde, Bogdan Raonic, Siddhartha Mishra</h6>
 
+
+
+<h4 align="center">  Abstract </h4>
+
+<p align="center">  Learning the solution operators of PDEs on arbitrary domains is challenging due to the diversity of possible domain shapes, in addition to the often intricate underlying physics. We propose an end-to-end graph neural network (GNN) based neural operator to learn PDE solution operators from data on point clouds in arbitrary domains. Our multi-scale model maps data between input/output point clouds by passing it through a downsampled regional mesh. Many novel elements are also incorporated to ensure resolution invariance and temporal continuity. Our model, termed RIGNO, is tested on a challenging suite of benchmarks, composed of various time-dependent and steady PDEs defined on a diverse set of domains. We demonstrate that RIGNO is significantly more accurate than neural operator baselines and robustly generalizes to unseen grid resolutions and time instances. </p>
+
+<hr>
+
+<!-- ## Architecture -->
 
 <p align="center"> <img src="assets/architecture.png" alt="architecture" width="900"/> </p>
 
 The above figure shows a general schematic of the RIGNO architecture for an idealized two-dimensional domain. The inputs are first independently projected to a latent space by feed-forward blocks. The information on the original discretization (*physical nodes*) is then locally aggregated to a coarser discretization (*regional nodes*). Regional nodes are connected to each other with edges of multiple length scales. Several message passing steps are then applied on the regional nodes which constitute the processor. The processed features are then mapped back to the original discretization by using similar edges as in the encoder, before being independently projected back to the desired output dimension via a feed-forward block without normalization layers.
 
-## Results
+The following animations illustrate the estimates produced by a RIGNO with 1.9 million parameters trained on 1024 solution trajectories (without fancy pairing strategies) of the incompressible Navier-Stokes equations in a two-dimensional square domain with periodic boundary conditions. All figures corresponds to unstructured versions (random point clouds) of the datasets. The model is trained with snapshots up to time 0.7s; the estimates after this time are considered as extrapolation in time.
 
-The following figure illustrates the estimates produced by a RIGNO with 2.7 million parameters trained on 1024 solution trajectories of the incompressible Navier-Stokes equations in a two-dimensional square domain with periodic boundary conditions. The time difference between the input and the output is 0.7s. The learned operator is autoregressively inferred 7 times.
-
-<p align="center"> <img src="assets/sample-ns.png" alt="sample-ns" width="600"/> </p>
-
-The figure below illustrates the estimates produced by a RIGNO trained on 1024 input-output pairs of hyper-elastic bodies with different geometries under a fixed tension traction force.
-
-<p align="center"> <img src="assets/sample-elasticity.png" alt="sample-elasticity" width="600"/> </p>
+<p align="center"> <img src="assets/samples/ns-combined-2.gif"  width="800" /> </p>
 
 ## Datasets
 
@@ -88,13 +92,10 @@ python -m rigno.test --help
 ## Citation
 
 ```bibtex
-@misc{mousavi2025rigno,
-    title={RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains},
-    author={Sepehr Mousavi and Shizheng Wen and Levi Lingsch and Maximilian Herde and Bogdan Raonić and Siddhartha Mishra},
-    year={2025},
-    eprint={2501.19205},
-    archivePrefix={arXiv},
-    primaryClass={cs.LG},
-    url={https://arxiv.org/abs/2501.19205},
+@article{mousavi2025rigno,
+  title={RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains},
+  author={Mousavi, Sepehr and Wen, Shizheng and Lingsch, Levi and Herde, Maximilian and Raoni{\'c}, Bogdan and Mishra, Siddhartha},
+  journal={arXiv preprint arXiv:2501.19205},
+  year={2025}
 }
 ```
