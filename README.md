@@ -1,9 +1,9 @@
 <h1 align="center"> Region Interaction Graph Neural Operator </h1>
 <p align="center"> <img src="assets/camlab-logo.png" width="100"/> </p>
-<h4 style="text-align:center; margin-left:auto; margin-right:auto; max-width:600px; word-wrap:break-word;"> <a href="https://arxiv.org/abs/2501.19205"> "RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains" </a>  </h4>
+<h3 align="center"> <a href="https://arxiv.org/abs/2501.19205"> "RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains" </a>  </h3>
 
-<h6 align="center">  Sepehr Mousavi, Shizheng Wen, Levi Lingsch, </h6>
-<h6 align="center">  Maximilian Herde, Bogdan Raonic, Siddhartha Mishra</h6>
+<h5 align="center">  Sepehr Mousavi, Shizheng Wen, Levi Lingsch, </h5>
+<h5 align="center">  Maximilian Herde, Bogdan Raonic, Siddhartha Mishra</h5>
 
 
 
