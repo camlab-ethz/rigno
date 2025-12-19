@@ -92,11 +92,11 @@ python -m rigno.test --help
 ## Citation
 
 ```bibtex
-@misc{mousavi2025rigno,
-  title={RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains},
-  author={Mousavi, Sepehr and Wen, Shizheng and Lingsch, Levi and Herde, Maximilian and Raoni{\'c}, Bogdan and Mishra, Siddhartha},
-  eprint={2501.19205},
-  archivePrefix={arXiv},
-  year={2025}
+@inproceedings{mousavi2025rigno,
+  title         = {RIGNO: A Graph-based framework for robust and accurate operator learning for PDEs on arbitrary domains},
+  author        = {Sepehr Mousavi and Shizheng Wen and Levi Lingsch and Maximilian Herde and Bogdan Raonić and Siddhartha Mishra},
+  booktitle     = {Advances in Neural Information Processing Systems},
+  volume        = {38},
+  year          = {2025},
 }
 ```
